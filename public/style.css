@@ -1,18 +1,23 @@
-body{
+body {
     margin: 0;
     padding: 0;
+    font-size: 16px;
 }
 
-#video-grid{
+#video-grid {
     display: flex;
     justify-content: center;
 }
 
 video {
-    height: 300x;
+    height: 300px;
     width: 400px;
     object-fit: cover;
-    
+    transition: transform 0.2s ease-in-out; /* Smooth transform transition */
+}
+
+.video:hover {
+    transform: scale(1.05); /* Slight zoom effect on hover */
 }
 
 .main {
@@ -34,26 +39,27 @@ video {
     border-left: 1px solid #303042;
 }
 
-.main__videos{
+.main__videos {
     flex-grow: 1;
     background-color: black;
     display: flex;
     justify-content: center;
     align-items: center;
 }
-.main__controls{
+
+.main__controls {
     display: flex;
     background-color: #1c1e20;
     color: #d2d2d2;
     padding: 5px;
-    justify-content: space-between;
-
-    
+    justify-content: space-around;
 }
-.main__controls__block{
+
+.main__controls__block {
     display: flex;
 }
-.main__controls__button{
+
+.main__controls__button {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -64,43 +70,75 @@ video {
 }
 
 .main__controls__button i {
-    font-size: 24px;;
+    font-size: 24px;
 }
 
 .leave_meeting {
     color: #eb534b;
 }
 
-.main__controls__button:hover{ 
+.main__controls__button:hover {
     background-color: #343434;
     border-radius: 5px;
+    transition: background-color 0.3s ease;
 }
 
-.main__header{
+.main__header {
     color: #f5f5f5;
     text-align: center;
 }
-.main__chat_window{
+
+.main__chat_window {
     flex-grow: 1;
     overflow-y: scroll;
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: #007bff transparent; /* For Firefox */
 }
-.main__message_container{
+
+.main__chat_window::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+.main__chat_window::-webkit-scrollbar-thumb {
+    background-color: #007bff; /* Color of the scroll thumb */
+    border-radius: 10px; /* Rounded corners for the scrollbar thumb */
+}
+
+.main__chat_window::-webkit-scrollbar-track {
+    background: transparent; /* Background of the scrollbar track */
+}
+
+.main__message_container {
     padding: 22px 12px;
     display: flex;
 }
 
-.main__message_container input{
+.main__message_container input {
     flex-grow: 1;
-    background-color: transparent; 
+    background-color: transparent;
     border: none;
     color: #f5f5f5;
 }
-.messages{
+
+.messages {
     color: white;
     list-style: none;
 }
-.unmute, .stop {
-    color:  #cc3b33;
 
+.unmute, .stop {
+    color: #cc3b33;
 }
 
+/* Media Queries for Responsive Design */
+@media (max-width: 768px) {
+    video {
+        width: 100%; /* Full width on small screens */
+        height: auto; /* Maintain aspect ratio */
+    }
+    .main {
+        flex-direction: column; /* Stack video and chat on small screens */
+    }
+    .main__left, .main__right {
+        flex: 1; /* Equal space for both sections */
+    }
+}

@@ -4,56 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Naona</title>
-    <link  rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://kit.fontawesome.com/58a5a6b737.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
+
     <script>
-        const ROOM_ID = '<%= roomId%>'
+        // const ROOM_ID = '<%= roomId %>'; // Using EJS to dynamically set ROOM_ID
+        const ROOM_ID = "Main"
     </script>
 </head>
-<body> 
+<body>
     <div class="main">
         <div class="main__left">
             <div class="main__videos">
                 <div id="video-grid"> 
                 </div>
-
-                </div>
-                <div class="main__controls">
-                    <div class="main__controls__block">
-                            <div onclick="muteUnmute()" class="main__controls__button main__mute_button">
-                                <i class="fa-solid fa-microphone"></i>
-                                <span> Mute</span>
-                            </div>
-                            <div onclick="playStop()" class="main__controls__button main__video_button">
-                                <i class="fa-solid fa-video"></i>
-                                <span> Stop Video</span>
-                            </div>
-                        </div>
-                        <div class="main__controls__block">
-                            <div class="main__controls__button">
-                                <i class="fa-solid fa-shield-alt"></i>
-                                <span> Security</span>
-                            </div>
-                            <div class="main__controls__button">
-                                <i class="fa-solid fa-user-friends"></i>
-                                <span> Participants</span>
-                            </div>
-                            <div class="main__controls__button">
-                                <i class="fa-solid fa-comment-alt"></i>
-                                <span> Chat</span>
-                            </div>
-                        </div>
-                        <div class="main__controls__block">
-                            <div class="main__controls__button">
-                                <span class="leave_meeting"> Leave Meeting</span>
-                            </div>
-                        </div>
-                    </div>
-                      
             </div>
+            <div class="main__controls">
+                <div class="main__controls__block">
+                    <div onclick="muteUnmute()" class="main__controls__button main__mute_button">
+                        <i class="fa-solid fa-microphone"></i>
+                        <span>Mute</span>
+                    </div>
+                    <div onclick="playStop()" class="main__controls__button main__video_button">
+                        <i class="fa-solid fa-video"></i>
+                        <span>Stop Video</span>
+                    </div>
+                </div>
+                <div class="main__controls__block">
+                    <div class="main__controls__button">
+                        <i class="fa-solid fa-shield-alt"></i>
+                        <span>Security</span>
+                    </div>
+                    <div class="main__controls__button">
+                        <i class="fa-solid fa-user-friends"></i>
+                        <span>Participants</span>
+                    </div>
+                    <div class="main__controls__button">
+                        <i class="fa-solid fa-comment-alt"></i>
+                        <span>Chat</span>
+                    </div>
+                </div>
+                <div class="main__controls__block">
+                    <div class="main__controls__button">
+                        <span class="leave_meeting">Leave Meeting</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="main__right">
             <div class="main__header">
@@ -61,7 +62,6 @@
             </div>
             <div class="main__chat_window">
                 <ul class="messages">
-
                 </ul>
             </div>
             <div class="main__message_container">
@@ -69,6 +69,6 @@
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script src="script.js"></script> <!-- Ensure script.js is loaded last -->
 </body>
 </html>
