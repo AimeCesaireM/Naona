@@ -23,14 +23,6 @@
 - **FontAwesome**: For icons in the UI.
 - **jQuery**: For handling user interactions and DOM manipulations.
 
-## 📸 Screenshots
-
-![Screenshot 1](link-to-image)  
-_A preview of the video conferencing interface._
-
-![Screenshot 2](link-to-image)  
-_Another screenshot showcasing the chat functionality._
-
 ## 🌱 Installation
 
 To run the app locally, follow the steps below:
