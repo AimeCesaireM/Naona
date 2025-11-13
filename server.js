@@ -15,8 +15,6 @@ const io = require('socket.io')(server, {
     }
 });
 
-const roomId = "Main";
-
 const peerServer = ExpressPeerServer(server, {
     path: '/peerjs',
     debug: true
@@ -27,14 +25,19 @@ app.use(express.static('public'));
 app.use('/peerjs', peerServer);
 
 // Route to create and redirect to a new room
-app.get('/create', (req, res) => {
-    // const roomId = uuidv4(); // Generate a new room ID
-    res.redirect(`/${roomId}`); // Redirect to the newly created room
+app.get('/create', (_req, res) => {
+    const roomId = uuidv4();
+    res.redirect(`/room/${roomId}`);
+});
+
+// Redirect root requests to a freshly created room
+app.get('/', (_req, res) => {
+    res.redirect('/create');
 });
 
 // Route to join an existing room
-app.get('/', (req, res) => {
-    res.render('room', { roomId: req.params.room }); // Render the room with the provided room ID
+app.get('/room/:roomId', (req, res) => {
+    res.render('room', { roomId: req.params.roomId });
 });
 
 // Socket.io connection
@@ -48,7 +51,17 @@ io.on('connection', socket => {
 
         socket.on('message', message => {
             console.log(`Message from ${userId}: ${message}`);
-            io.to(roomId).emit('createMessage', message);
+            io.to(roomId).emit('createMessage', {
+                userId,
+                message,
+                timestamp: Date.now()
+            });
+        });
+
+        socket.on('leave-room', () => {
+            console.log(`User ${userId} left room: ${roomId}`);
+            socket.leave(roomId);
+            socket.broadcast.to(roomId).emit('user-disconnected', userId);
         });
 
         // Handle user disconnection
