@@ -16,12 +16,13 @@ const io = require('socket.io')(server, {
 });
 
 const peerServer = ExpressPeerServer(server, {
+    path: '/peerjs',
     debug: true
 });
 
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
-app.use('/peerjs', peerServer);
+app.use(peerServer);
 
 // Route to create and redirect to a new room
 app.get('/create', (_req, res) => {
