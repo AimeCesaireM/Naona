@@ -45,6 +45,23 @@ To run the app locally, follow the steps below:
 
 4. Open your browser and go to [http://localhost:3030](http://localhost:3030).
 
+## 🐳 Run with Docker
+
+You can build and run the service in a container:
+
+1. **Build the image**
+   ```bash
+   docker build -t naona:latest .
+   ```
+2. **Start the container**
+   ```bash
+   docker run --rm -p 3030:3030 naona:latest
+   ```
+
+The app is now available at [http://localhost:3030](http://localhost:3030).
+
+> **Tip:** For iterative development you can wire up `docker compose` with bind mounts and `nodemon`.
+
 ## 🛠️ How It Works
 
 1. **Creating a Room**:  
