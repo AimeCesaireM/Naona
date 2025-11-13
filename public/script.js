@@ -15,7 +15,10 @@
         localStream: null,
         localId: null,
         hasJoined: false,
-        hasLeft: false
+        hasLeft: false,
+        activeVideoDeviceId: null,
+        preferredFacingMode: 'user',
+        videoDevices: []
     };
 
     const videoGrid = document.getElementById('video-grid');
@@ -24,6 +27,7 @@
     const participantCount = document.getElementById('participant-count');
     const copyLinkButton = document.getElementById('copy-link');
     const leaveButton = document.querySelector('.leave_meeting');
+    const switchCameraButton = document.getElementById('switch-camera');
     const toggleAudioButton = document.getElementById('toggle-audio');
     const toggleVideoButton = document.getElementById('toggle-video');
     const messageList = document.getElementById('chat-messages');
@@ -37,6 +41,10 @@
     }
     if (sendButton) {
         sendButton.disabled = true;
+    }
+    if (switchCameraButton) {
+        switchCameraButton.disabled = true;
+        switchCameraButton.classList.add('control-button--disabled');
     }
 
     const updateConnectionStatus = (label, variant = 'neutral') => {
@@ -70,7 +78,10 @@
         const video = document.createElement('video');
         video.className = 'video-tile__video';
         video.playsInline = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
         video.autoplay = true;
+        video.setAttribute('autoplay', 'true');
         if (isLocal) {
             video.muted = true;
             video.classList.add('video-tile__video--mirror');
@@ -132,6 +143,56 @@
             registerTile(userId, tile);
         }
         return tile;
+    };
+
+    const updateSwitchCameraAvailability = () => {
+        if (!switchCameraButton) return;
+        const supportsFacingMode = Boolean(navigator.mediaDevices?.getSupportedConstraints?.().facingMode);
+        const hasActiveVideo = Boolean(state.localStream?.getVideoTracks?.()?.length);
+        const hasMultipleDevices = state.videoDevices.length > 1;
+        const canToggle = hasActiveVideo && (hasMultipleDevices || supportsFacingMode);
+        switchCameraButton.disabled = !canToggle;
+        switchCameraButton.classList.toggle('control-button--disabled', !canToggle);
+    };
+
+    const syncActiveVideoMeta = videoTrack => {
+        if (!videoTrack) return;
+        const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+        if (settings.deviceId) {
+            state.activeVideoDeviceId = settings.deviceId;
+        } else if (videoTrack.label && state.videoDevices.length) {
+            const match = state.videoDevices.find(device => device.label === videoTrack.label);
+            if (match) {
+                state.activeVideoDeviceId = match.deviceId;
+            }
+        }
+        if (settings.facingMode) {
+            state.preferredFacingMode = settings.facingMode;
+        } else if (videoTrack.label) {
+            if (/back|rear|environment/i.test(videoTrack.label)) {
+                state.preferredFacingMode = 'environment';
+            } else if (/front|user/i.test(videoTrack.label)) {
+                state.preferredFacingMode = 'user';
+            }
+        }
+    };
+
+    const refreshVideoDevices = async currentVideoTrack => {
+        if (!navigator.mediaDevices?.enumerateDevices) {
+            state.videoDevices = [];
+            updateSwitchCameraAvailability();
+            return;
+        }
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            state.videoDevices = devices.filter(device => device.kind === 'videoinput');
+            syncActiveVideoMeta(currentVideoTrack);
+        } catch (error) {
+            console.warn('Unable to enumerate media devices', error);
+        } finally {
+            updateSwitchCameraAvailability();
+        }
     };
 
     const escapeHtml = text =>
@@ -219,6 +280,80 @@
         if (label) {
             label.textContent = enabled ? 'Stop Video' : 'Start Video';
         }
+    };
+
+    const buildVideoConstraints = (overrides = {}) => {
+        const baseConstraints = {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+        };
+
+        if (overrides.deviceId) {
+            return {
+                ...baseConstraints,
+                deviceId: { exact: overrides.deviceId }
+            };
+        }
+
+        if (overrides.facingMode) {
+            return {
+                ...baseConstraints,
+                facingMode: { exact: overrides.facingMode }
+            };
+        }
+
+        if (state.activeVideoDeviceId) {
+            return {
+                ...baseConstraints,
+                deviceId: { exact: state.activeVideoDeviceId }
+            };
+        }
+
+        if (state.preferredFacingMode) {
+            return {
+                ...baseConstraints,
+                facingMode: { ideal: state.preferredFacingMode }
+            };
+        }
+
+        return baseConstraints;
+    };
+
+    const replaceLocalVideoTrack = newVideoTrack => {
+        if (!newVideoTrack) {
+            return;
+        }
+
+        const existingVideoTracks = state.localStream?.getVideoTracks() ?? [];
+        const videoWasEnabled = existingVideoTracks.length ? existingVideoTracks[0].enabled : true;
+
+        if (!state.localStream) {
+            state.localStream = new MediaStream([newVideoTrack]);
+        } else {
+            existingVideoTracks.forEach(track => {
+                state.localStream.removeTrack(track);
+                track.stop();
+            });
+            state.localStream.addTrack(newVideoTrack);
+        }
+
+        newVideoTrack.enabled = videoWasEnabled;
+
+        if (localTile) {
+            attachStream(localTile, state.localStream);
+        }
+
+        Object.values(peers).forEach(call => {
+            const sender = call.peerConnection?.getSenders?.().find(sender => sender.track && sender.track.kind === 'video');
+            if (sender) {
+                sender.replaceTrack(newVideoTrack).catch(error => {
+                    console.warn('Unable to replace outbound video track', error);
+                });
+            }
+        });
+
+        setVideoState(newVideoTrack.enabled);
     };
 
     const disableControl = (button, labelText) => {
@@ -341,6 +476,72 @@
         setVideoState(enabled);
     });
 
+    switchCameraButton?.addEventListener('click', async () => {
+        if (switchCameraButton.disabled) {
+            return;
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia || !state.localStream) {
+            return;
+        }
+
+        switchCameraButton.disabled = true;
+        switchCameraButton.classList.add('control-button--disabled');
+
+        try {
+            let overrides = {};
+
+            if (state.videoDevices.length > 1) {
+                const currentIndex = state.videoDevices.findIndex(device => device.deviceId === state.activeVideoDeviceId);
+                const nextIndex = (currentIndex + 1) % state.videoDevices.length;
+                const nextDevice = state.videoDevices[nextIndex];
+
+                if (!nextDevice || nextDevice.deviceId === state.activeVideoDeviceId) {
+                    return;
+                }
+
+                overrides = { deviceId: nextDevice.deviceId };
+            } else {
+                const nextFacingMode = state.preferredFacingMode === 'environment' ? 'user' : 'environment';
+                overrides = { facingMode: nextFacingMode };
+            }
+
+            const updatedStream = await navigator.mediaDevices.getUserMedia({
+                video: buildVideoConstraints(overrides)
+            });
+
+            const [freshVideoTrack] = updatedStream.getVideoTracks();
+            if (!freshVideoTrack) {
+                throw new Error('No video track returned when switching camera.');
+            }
+
+            if (overrides.deviceId) {
+                state.activeVideoDeviceId = overrides.deviceId;
+            }
+
+            if (overrides.facingMode) {
+                state.preferredFacingMode = overrides.facingMode;
+                state.activeVideoDeviceId = null;
+            }
+
+            replaceLocalVideoTrack(freshVideoTrack);
+            syncActiveVideoMeta(freshVideoTrack);
+            await refreshVideoDevices(freshVideoTrack);
+        } catch (error) {
+            console.error('Unable to switch camera', error);
+            updateConnectionStatus('Camera switch failed', 'danger');
+            window.setTimeout(() => {
+                if (state.hasJoined) {
+                    updateConnectionStatus('Live', 'success');
+                } else if (!state.hasLeft) {
+                    updateConnectionStatus('Connecting…', 'warning');
+                }
+            }, 2200);
+        } finally {
+            updateSwitchCameraAvailability();
+        }
+    });
+
     messageForm?.addEventListener('submit', event => {
         event.preventDefault();
         if (!state.hasJoined || !messageInput) return;
@@ -458,6 +659,7 @@
             state.localStream = new MediaStream();
             disableControl(toggleAudioButton, 'Unavailable');
             disableControl(toggleVideoButton, 'Unavailable');
+            updateSwitchCameraAvailability();
             ensurePeerBootstrapped();
             updateConnectionStatus('Media unsupported', 'danger');
             return;
@@ -465,11 +667,7 @@
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 30 }
-                },
+                video: buildVideoConstraints(),
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true
@@ -478,6 +676,11 @@
 
             state.localStream = stream;
             attachStream(localTile, stream);
+
+            const videoTracks = stream.getVideoTracks();
+            const [primaryVideoTrack] = videoTracks;
+            syncActiveVideoMeta(primaryVideoTrack);
+            await refreshVideoDevices(primaryVideoTrack);
 
             const audioTracks = stream.getAudioTracks();
             if (audioTracks.length) {
@@ -488,13 +691,13 @@
                 setAudioState(false);
             }
 
-            const videoTracks = stream.getVideoTracks();
             if (videoTracks.length) {
                 enableControl(toggleVideoButton);
                 setVideoState(videoTracks[0].enabled !== false);
             } else {
                 disableControl(toggleVideoButton, 'No camera');
                 setVideoState(false);
+                updateSwitchCameraAvailability();
             }
 
             updateConnectionStatus('Connecting…', 'warning');
@@ -511,6 +714,7 @@
             }
             updateConnectionStatus('Camera blocked', 'danger');
             ensurePeerBootstrapped();
+            updateSwitchCameraAvailability();
         }
     };
 
