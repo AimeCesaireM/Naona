@@ -4,71 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Naona</title>
-    <link rel="stylesheet" href="style.css">
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://kit.fontawesome.com/58a5a6b737.js" crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" defer></script>
-
-    <script>
-        // const ROOM_ID = '<%= roomId %>'; // Using EJS to dynamically set ROOM_ID
-        const ROOM_ID = "Main"
-    </script>
+    <meta name="theme-color" content="#1a0b08">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpeg" href="/naona%20logo.jpg">
+    <link rel="stylesheet" href="/style.css">
 </head>
-<body>
-    <div class="main">
-        <div class="main__left">
-            <div class="main__videos">
-                <div id="video-grid"> 
+<body data-room-id="<%= roomId %>">
+    <div class="app">
+        <header class="app__header">
+            <div class="app__brand">
+                <img src="/naona%20logo.jpg" alt="Naona logo" class="app__logo">
+                <div class="app__brand-text">
+                    <h1 class="app__title">Naona</h1>
+                    <p class="app__subtitle">Instant calls & rooms.</p>
+                    <p class="app__helper">Copy the invite link and send it to anyone you’d like to join.</p>
                 </div>
             </div>
-            <div class="main__controls">
-                <div class="main__controls__block">
-                    <div onclick="muteUnmute()" class="main__controls__button main__mute_button">
+            <div class="app__header-actions">
+                <button id="copy-link" class="btn btn--ghost" type="button">
+                    <i class="fa-solid fa-link"></i>
+                    <span class="btn__label">Copy Invite</span>
+                </button>
+                <button class="btn btn--danger leave_meeting" type="button">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span class="btn__label">Leave</span>
+                </button>
+            </div>
+        </header>
+        <main class="app__main">
+            <section class="stage" aria-label="Video stage">
+                <div class="stage__status">
+                    <span id="connection-status" class="status-pill status-pill--warning">Connecting…</span>
+                    <span id="participant-count" class="status-pill">1 online</span>
+                </div>
+                <div class="stage__grid" id="video-grid" role="list">
+                    <div id="stage-placeholder" class="stage__empty">
+                        <h2>Waiting for others to join</h2>
+                        <p>Copy your room link and send it to teammates to bring them in instantly.</p>
+                    </div>
+                </div>
+                <div class="stage__controls" role="group" aria-label="Call controls">
+                    <button id="toggle-audio" class="control-button control-button--active" type="button">
                         <i class="fa-solid fa-microphone"></i>
-                        <span>Mute</span>
-                    </div>
-                    <div onclick="playStop()" class="main__controls__button main__video_button">
+                        <span class="control-button__label">Mute</span>
+                    </button>
+                    <button id="toggle-video" class="control-button control-button--active" type="button">
                         <i class="fa-solid fa-video"></i>
-                        <span>Stop Video</span>
-                    </div>
+                        <span class="control-button__label">Stop Video</span>
+                    </button>
+                    <button id="switch-camera" class="control-button" type="button">
+                        <i class="fa-solid fa-camera-rotate"></i>
+                        <span class="control-button__label">Switch Camera</span>
+                    </button>
                 </div>
-                <div class="main__controls__block">
-                    <div class="main__controls__button">
-                        <i class="fa-solid fa-shield-alt"></i>
-                        <span>Security</span>
-                    </div>
-                    <div class="main__controls__button">
-                        <i class="fa-solid fa-user-friends"></i>
-                        <span>Participants</span>
-                    </div>
-                    <div class="main__controls__button">
-                        <i class="fa-solid fa-comment-alt"></i>
-                        <span>Chat</span>
-                    </div>
+            </section>
+            <aside class="sidebar" aria-label="Chat panel">
+                <div class="sidebar__header">
+                    <h2>Chat</h2>
                 </div>
-                <div class="main__controls__block">
-                    <div class="main__controls__button">
-                        <span class="leave_meeting">Leave Meeting</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="main__right">
-            <div class="main__header">
-                <h6>Chat</h6>
-            </div>
-            <div class="main__chat_window">
-                <ul class="messages">
-                </ul>
-            </div>
-            <div class="main__message_container">
-                <input type="text" id="chat_message" placeholder="Type message here...">
-            </div>
-        </div>
+                <ul class="messages" id="chat-messages" aria-live="polite"></ul>
+                <form id="message-form" class="message-form" autocomplete="off">
+                    <input type="text" id="chat_message" name="message" placeholder="Say something nice…" aria-label="Chat message" required>
+                    <button class="btn btn--primary" type="submit">
+                        <span>Send</span>
+                    </button>
+                </form>
+            </aside>
+        </main>
     </div>
-    <script src="script.js"></script> <!-- Ensure script.js is loaded last -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" defer></script>
+    <script src="https://kit.fontawesome.com/58a5a6b737.js" crossorigin="anonymous" defer></script>
+    <script src="/script.js" defer></script>
 </body>
 </html>
